@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>World Map Clock with Alarm, Stopwatch, and Timer</title>
+
+  <!-- Include Leaflet CSS for OpenStreetMap -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+  <!-- Custom CSS -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #2c2c2c;
+      /* Dark background */
+      color: #e5e5e5;
+      margin: 0;
+    }
+
+    .container {
+      text-align: center;
+      padding: 20px;
+      border-radius: 10px;
+      background-color: #3e3e3e;
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .clock {
+      font-size: 48px;
+      color: #7FFF00;
+      /* Green shade for time */
+      margin-bottom: 20px;
+    }
+
+    .date {
+      font-size: 24px;
+      color: #7FFF00;
+      margin-bottom: 20px;
+    }
+
+    select,
+    input {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #666;
+      background-color: #555;
+      color: #e5e5e5;
+    }
+
+    button {
+      padding: 10px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      margin: 0 10px;
+      font-weight: bold;
+      border-bottom: 2px solid transparent;
+      color: #e5e5e5;
+    }
+
+    .tab.active {
+      border-bottom: 2px solid #7FFF00;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Map styling */
+    #map {
+      height: 400px;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    /* Timer styling */
+    .timer {
+      font-size: 24px;
+      margin: 20px 0;
+    }
+
+    .quote {
+      font-size: 20px;
+      color: #FFD700; /* Golden color for quotes */
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <div class="tabs">
+      <div class="tab active" id="homepageTab" onclick="showTab('homepage')">Homepage Clock</div>
+      <div class="tab" id="worldClockTab" onclick="showTab('worldClock')">World Clock</div>
+      <div class="tab" id="alarmTab" onclick="showTab('alarm')">Alarm</div>
+      <div class="tab" id="stopwatchTab" onclick="showTab('stopwatch')">Stopwatch</div>
+      <div class="tab" id="timerTab" onclick="showTab('timer')">Timer</div>
+    </div>
+
+    <!-- Homepage Clock Tab -->
+    <div class="tab-content active" id="homepageContent">
+      <h2>Indian Standard Time (IST)</h2>
+      <div class="clock" id="homepageClock"></div>
+      <div class="date" id="homepageDate"></div>
+    </div>
+
+    <!-- World Clock Tab -->
+    <div class="tab-content" id="worldClockContent">
+      <h2>Click on any location on the world map to get its time:</h2>
+      <div id="map"></div>
+      <div class="clock" id="worldClock">Select a location on the map</div>
+    </div>
+
+    <!-- Alarm Tab -->
+    <div class="tab-content" id="alarmContent">
+      <h2>Set Alarm</h2>
+      <input type="time" id="alarmTime" />
+      <button onclick="setAlarm()">Set Alarm</button>
+      <p id="alarmMessage"></p>
+    </div>
+
+    <!-- Stopwatch Tab -->
+    <div class="tab-content" id="stopwatchContent">
+      <h2>Stopwatch</h2>
+      <div class="clock" id="stopwatch">00:00:000</div>
+      <button onclick="startStopwatch()">Start</button>
+      <button onclick="stopStopwatch()">Stop</button>
+      <button onclick="resetStopwatch()">Reset</button>
+    </div>
+
+    <!-- Timer Tab -->
+    <div class="tab-content" id="timerContent">
+      <h2>Timer</h2>
+      <input type="number" id="timerInput" placeholder="Enter seconds" />
+      <button onclick="startTimer()">Start Timer</button>
+      <div class="timer" id="timerDisplay">00:00</div>
+      <p id="timerMessage"></p>
+      <div class="quote" id="motivationalQuote"></div>
+    </div>
+  </div>
+
+  <script>
+    // Array of motivational quotes
+    const quotes = [
+      "Believe you can and you're halfway there. - Theodore Roosevelt",
+      "Success is not the key to happiness. Happiness is the key to success. - Albert Schweitzer",
+      "Don't watch the clock; do what it does. Keep going. - Sam Levenson",
+      "The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt",
+      "What lies behind us and what lies before us are tiny matters compared to what lies within us. - Ralph Waldo Emerson",
+      "You are never too old to set another goal or to dream a new dream. - C.S. Lewis",
+      "Act as if what you do makes a difference. It does. - William James",
+      "Success usually comes to those who are too busy to be looking for it. - Henry David Thoreau",
+      "Opportunities don't happen. You create them. - Chris Grosser",
+      "It does not matter how slowly you go as long as you do not stop. - Confucius",
+    ];
+
+    // Function to get a random quote
+    function getRandomQuote() {
+      const randomIndex = Math.floor(Math.random() * quotes.length);
+      return quotes[randomIndex];
+    }
+
+    // Homepage Clock (IST)
+    function updateHomepageClock() {
+      const now = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const istTime = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+      const istDate = now.toLocaleDateString('en-IN', options);
+
+      document.getElementById('homepageClock').textContent = istTime;
+      document.getElementById('homepageDate').textContent = istDate;
+    }
+    setInterval(updateHomepageClock, 1000);
+
+    // Initialize Map for World Clock
+    var map = L.map('map').setView([20.5937, 78.9629], 2); // Focused on India by default
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      minZoom: 2, // Setting min zoom level for better user experience
+    }).addTo(map);
+
+    // Get time from WorldTimeAPI based on coordinates for World Clock
+    map.on('click', function (e) {
+      var lat = e.latlng.lat;
+      var lng = e.latlng.lng;
+
+      // Fetch the appropriate time based on lat, lng from the new API
+      fetch(`https://worldtimeapi.org/api/timezone/Etc/GMT${lat > 0 ? '-' : '+'}${Math.abs(Math.round(lng / 15))}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok ' + response.statusText);
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Assuming the new API returns a "datetime" field in the response JSON
+          const dateTime = new Date(data.datetime);
+          document.getElementById('worldClock').textContent = dateTime.toLocaleTimeString();
+        })
+        .catch(error => {
+          document.getElementById('worldClock').textContent = 'Time not available';
+          console.log("Error fetching time:", error);
+        });
+
+      // Optionally zoom in to the clicked location
+      map.setView(e.latlng, 8);
+    });
+
+    // Alarm functionality
+    let alarmTimeout = null;
+    function setAlarm() {
+      const alarmTime = document.getElementById('alarmTime').value;
+      if (!alarmTime) {
+        alert('Please select a time for the alarm.');
+        return;
+      }
+
+      const alarmDate = new Date();
+      const [hours, minutes] = alarmTime.split(':');
+      alarmDate.setHours(hours);
+      alarmDate.setMinutes(minutes);
+      alarmDate.setSeconds(0);
+
+      const now = new Date();
+      const timeToAlarm = alarmDate.getTime() - now.getTime();
+      if (timeToAlarm < 0) {
+        alert('Please select a time in the future.');
+        return;
+      }
+
+      alarmTimeout = setTimeout(() => {
+        alert('Alarm ringing!');
+        document.getElementById('alarmMessage').textContent = 'Alarm ringing!';
+      }, timeToAlarm);
+
+      document.getElementById('alarmMessage').textContent = `Alarm set for ${alarmDate.toLocaleTimeString()}`;
+    }
+
+    // Stopwatch functionality
+    let stopwatchTime = 0;
+    let stopwatchInterval = null;
+
+    function startStopwatch() {
+      if (!stopwatchInterval) {
+        stopwatchInterval = setInterval(() => {
+          stopwatchTime += 100;
+          document.getElementById('stopwatch').textContent = formatTime(stopwatchTime);
+        }, 100);
+      }
+    }
+
+    function stopStopwatch() {
+      clearInterval(stopwatchInterval);
+      stopwatchInterval = null;
+    }
+
+    function resetStopwatch() {
+      stopStopwatch();
+      stopwatchTime = 0;
+      document.getElementById('stopwatch').textContent = formatTime(stopwatchTime);
+    }
+
+    function formatTime(timeInMilliseconds) {
+      const totalSeconds = Math.floor(timeInMilliseconds / 1000);
+      const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+      const seconds = String(totalSeconds % 60).padStart(2, '0');
+      const milliseconds = String(timeInMilliseconds % 1000).padStart(3, '0');
+      return `${minutes}:${seconds}:${milliseconds}`;
+    }
+
+    // Timer Feature
+    let timerInterval = null;
+    function startTimer() {
+      const timerInput = document.getElementById('timerInput').value;
+      const timerSeconds = parseInt(timerInput, 10);
+      if (isNaN(timerSeconds) || timerSeconds <= 0) {
+        alert('Please enter a valid number of seconds.');
+        return;
+      }
+      let timeLeft = timerSeconds;
+      document.getElementById('timerMessage').textContent = '';
+
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+        const seconds = String(timeLeft % 60).padStart(2, '0');
+        document.getElementById('timerDisplay').textContent = `${minutes}:${seconds}`;
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          document.getElementById('timerMessage').textContent = "Time's up!";
+          document.getElementById('timerDisplay').textContent = '00:00';
+          alert("Time's up!");
+        }
+        timeLeft--;
+      }, 1000);
+    }
+
+    // Tab functionality
+    function showTab(tabName) {
+      const tabContents = document.querySelectorAll('.tab-content');
+      const tabs = document.querySelectorAll('.tab');
+      tabContents.forEach(content => {
+        content.classList.remove('active');
+      });
+      tabs.forEach(tab => {
+        tab.classList.remove('active');
+      });
+
+      document.getElementById(tabName + 'Content').classList.add('active');
+      document.getElementById(tabName + 'Tab').classList.add('active');
+
+      // Update the quote when the Timer tab is shown
+      if (tabName === 'timer') {
+        document.getElementById('motivationalQuote').textContent = getRandomQuote();
+      }
+    }
+  </script>
+</body>
+
+</html>
